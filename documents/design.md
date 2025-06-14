@@ -183,10 +183,12 @@ aws-organizations-mcp-server/
 - FastMCPベースのサーバ実装
 - helloツールの実装
 - 基本的なエラーハンドリング
+- サーバ起動確認（Issue#4完了）
+- MCP Inspector での動作確認
 
 #### 8.2.2 実装中項目
-- サーバ起動確認
 - Claude Desktop連携
+- Claude Desktop経由での基本動作確認
 
 ## 9. 運用設計
 
