@@ -16,7 +16,7 @@ AWS Service Control Policy (SCP) audit server for MCP (Model Context Protocol).
 
 ## 前提条件
 
-- Python 3.8以上
+- [uv](https://docs.astral.sh/uv/) (推奨)
 - AWS CLI設定済み（適切なIAM権限）
 - AWS Organizations の管理アカウントまたは委任管理者権限
 
@@ -43,30 +43,36 @@ AWS Service Control Policy (SCP) audit server for MCP (Model Context Protocol).
 
 ## セットアップ
 
-### 1. リポジトリのクローン
+### 1. uvのインストール
 
 ```bash
-git clone https://github.com/chittai/aws-organizations-mcp-server.git
-cd aws-organizations-mcp-server
+# macOS/Linux:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows:
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### 2. Python仮想環境の作成
+### 2. プロジェクトのクローン・初期化
 
 ```bash
-# 仮想環境を作成
-python -m venv venv
+# GitHubからクローン
+git clone https://github.com/chittai/aws-organizations-mcp-server.git
+cd aws-organizations-mcp-server
 
-# 仮想環境をアクティベート
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
+# または新規作成の場合
+uv init aws-organizations-mcp-server
+cd aws-organizations-mcp-server
 ```
 
 ### 3. 依存関係のインストール
 
 ```bash
-pip install -r requirements.txt
+# MCPとboto3をインストール
+uv add "mcp[cli]" boto3
+
+# インストール確認
+uv tree
 ```
 
 ### 4. AWS認証情報の設定
@@ -85,10 +91,20 @@ export AWS_DEFAULT_REGION=us-east-1
 
 ## 使用方法
 
-### MCPサーバの起動
+### 開発・テスト
+
+#### MCP Inspector を使用（推奨）
 
 ```bash
-python server.py
+# ブラウザベースのテストツール
+uv run mcp dev server.py
+```
+
+#### 直接実行
+
+```bash
+# サーバを直接起動
+uv run python server.py
 ```
 
 ### Claude Desktop との連携
@@ -105,21 +121,30 @@ Claude Desktop の設定ファイルに以下を追加：
 {
   "mcpServers": {
     "aws-organizations": {
-      "command": "python",
-      "args": ["/path/to/aws-organizations-mcp-server/server.py"],
-      "env": {
-        "PYTHONPATH": "/path/to/aws-organizations-mcp-server/venv/lib/python3.x/site-packages"
-      }
+      "command": "uv",
+      "args": ["run", "python", "server.py"],
+      "cwd": "/path/to/aws-organizations-mcp-server"
     }
   }
 }
 ```
 
-**注意**: `/path/to/aws-organizations-mcp-server/` を実際のプロジェクトパスに置き換えてください。
+**注意**: `/path/to/aws-organizations-mcp-server` を実際のプロジェクトパスに置き換えてください。
+
+### 簡単インストール（将来対応予定）
+
+```bash
+# Claude Desktopに直接インストール
+uv run mcp install server.py --name "AWS Organizations"
+```
 
 ### 動作確認
 
 Claude Desktop を再起動後、以下をテスト：
+
+```
+利用可能なツールを教えてください
+```
 
 ```
 helloツールを使って挨拶してください
@@ -145,10 +170,11 @@ helloツールを使って挨拶してください
 
 ```
 aws-organizations-mcp-server/
-├── server.py              # メインサーバファイル
-├── requirements.txt       # Python依存関係
-├── README.md             # このファイル
-└── venv/                 # Python仮想環境
+├── server.py               # メインサーバファイル
+├── pyproject.toml          # プロジェクト設定
+├── uv.lock                 # 依存関係ロック
+├── README.md              # このファイル
+└── .venv/                 # 仮想環境（uv管理）
 ```
 
 ### 開発の進め方
@@ -161,16 +187,38 @@ aws-organizations-mcp-server/
 
 各機能はGitHub Issuesで管理されています。
 
+### 開発コマンド
+
+```bash
+# 依存関係の追加
+uv add package_name
+
+# 開発依存関係の追加
+uv add --dev package_name
+
+# 依存関係の同期
+uv sync
+
+# プロジェクトの実行
+uv run python server.py
+
+# MCP Inspector でテスト
+uv run mcp dev server.py
+
+# Claude Desktop にインストール（将来）
+uv run mcp install server.py
+```
+
 ## トラブルシューティング
 
 ### 一般的な問題
 
 1. **MCPサーバが起動しない**
-   - Python仮想環境がアクティベートされているか確認
-   - 依存関係が正しくインストールされているか確認
+   - `uv sync` で依存関係を同期
+   - `uv tree` で依存関係を確認
 
 2. **Claude Desktop で認識されない**
-   - 設定ファイルのパスが正しいか確認
+   - 設定ファイルの`cwd`パスが正しいか確認
    - Claude Desktop を再起動
    - ログでエラーを確認
 
@@ -178,6 +226,19 @@ aws-organizations-mcp-server/
    - AWS認証情報が正しく設定されているか確認
    - 必要なIAM権限があるか確認
    - リージョン設定を確認
+
+### デバッグ
+
+```bash
+# 詳細ログでMCP Inspector を実行
+uv run mcp dev server.py --verbose
+
+# uvの環境情報確認
+uv info
+
+# Python環境確認
+uv run python --version
+```
 
 ## ライセンス
 
@@ -190,5 +251,7 @@ Issue報告、機能要望、プルリクエストを歓迎します。
 ## 参考リンク
 
 - [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [uv - Python package manager](https://docs.astral.sh/uv/)
 - [AWS Organizations API](https://docs.aws.amazon.com/organizations/latest/APIReference/)
 - [Claude Desktop](https://claude.ai/desktop)
