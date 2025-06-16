@@ -165,7 +165,7 @@ Claude Desktop ← MCP Protocol → MCP Server ← boto3 → AWS Organizations A
 
 ## 8. 実装詳細
 
-### 8.1 プロジェクト構造
+### 8.1 プロジェクト構造（旧版）
 ```
 aws-organizations-mcp-server/
 ├── server.py               # メインサーバファイル
@@ -244,6 +244,149 @@ aws-organizations-mcp-server/
 
 ---
 
-**ドキュメントバージョン**: 1.0  
-**最終更新**: 2025年6月14日  
+## 📋 プロジェクト継続用コンテキスト
+
+### 🎯 **プロジェクト概要**
+
+- **名前**: AWS Organizations MCP Server
+- **目的**: AWS Service Control Policy (SCP) の監査・分析を行うMCPサーバ
+- **リポジトリ**: https://github.com/chittai/aws-organizations-mcp-server
+- **アプローチ**: AWS公式MCPサーバの実装方針に完全準拠
+
+### 📊 **現在の進捗状況**
+
+#### ✅ **完了済み**
+
+1. **Issue #1**: uvプロジェクト初期化 - 完了
+1. **Issue #2**: uv依存関係インストール - 完了
+1. **Issue #3**: 最小MCPサーバ実装 - 完了
+- `server.py`にhelloツール実装済み
+- FastMCP使用、基本動作確認済み
+
+#### 🔄 **進行中**
+
+- **Issue #7**: プロジェクト構造のAWS公式準拠化
+  - AWS公式MCPサーバと同じディレクトリ構造への変更
+  - 現在のserver.pyから新構造への移行が必要
+
+### 🏗️ **技術スタック（AWS公式準拠）**
+
+- **言語**: Python 3.8+
+- **フレームワーク**: FastMCP (AWS公式推奨)
+- **パッケージ管理**: uv
+- **AWS SDK**: boto3
+- **設定**: 環境変数ベース (AWS_PROFILE, AWS_REGION, FASTMCP_LOG_LEVEL)
+
+### 📁 **目標のプロジェクト構造（AWS公式準拠）**
+
+```
+aws-organizations-mcp-server/
+├── server.py                          # エントリーポイント
+├── pyproject.toml                     # パッケージ設定
+├── src/
+│   └── aws_organizations_mcp/
+│       ├── __init__.py
+│       ├── server.py                  # FastMCPサーバ実装
+│       ├── config.py                  # 設定管理
+│       ├── tools/
+│       │   ├── __init__.py
+│       │   ├── health_tools.py        # ヘルスチェック
+│       │   └── scp_tools.py           # SCP関連ツール
+│       └── services/
+│           ├── __init__.py
+│           └── organizations.py       # Organizations API wrapper
+```
+
+### 🎯 **実装すべき機能（優先順）**
+
+#### **Phase 1: 基盤構築（進行中）**
+
+- **Issue #7**: プロジェクト構造AWS公式準拠化
+- **Issue #8**: AWS公式準拠設定管理実装
+- **Issue #9**: Organizations Service基盤
+- **Issue #10**: AWS接続ヘルスチェックツール
+
+#### **Phase 2: SCP機能**
+
+- **Issue #11**: `list_scp_policies` ツール
+- **Issue #12**: `get_scp_detail` ツール
+
+#### **Phase 3: 統合・配布**
+
+- **Issue #13**: 統合テスト
+- **Issue #14**: ドキュメント・配布準備
+
+### 🔧 **実装パターン（AWS公式準拠）**
+
+#### **環境変数設定**
+
+```json
+{
+  "mcpServers": {
+    "aws-organizations": {
+      "command": "uv",
+      "args": ["run", "python", "server.py"],
+      "cwd": "/path/to/aws-organizations-mcp-server",
+      "env": {
+        "AWS_PROFILE": "your-profile",
+        "AWS_REGION": "us-east-1",
+        "FASTMCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+#### **設定管理クラス**
+
+```python
+class MCPConfig:
+    def __init__(self):
+        self.aws_profile = os.getenv("AWS_PROFILE", "default")
+        self.aws_region = os.getenv("AWS_REGION", "us-east-1")
+        self.log_level = os.getenv("FASTMCP_LOG_LEVEL", "INFO")
+        self.readonly_mode = not bool(os.getenv("ALLOW_WRITE", False))
+```
+
+#### **ツール実装パターン**
+
+```python
+@mcp.tool()
+def list_scp_policies() -> List[Dict[str, Any]]:
+    """List all Service Control Policies in AWS Organizations"""
+    try:
+        return org_service.list_policies()
+    except Exception as e:
+        raise ValueError(f"Failed to retrieve SCP policies: {str(e)}")
+```
+
+### 🚨 **現在の問題**
+
+- **Claude Desktop表示問題**: MCPサーバがClaude Desktopで認識されない
+- **対処法**: まず `uv run mcp dev server.py` でMCP Inspectorでの動作確認から開始
+
+### 📚 **重要な参考情報**
+
+- **AWS公式MCPサーバ**: https://github.com/awslabs/mcp
+- **設計ドキュメント**: https://github.com/chittai/aws-organizations-mcp-server/blob/main/documents/design.md
+- **MCP Python SDK**: https://github.com/modelcontextprotocol/python-sdk
+
+### 🔄 **次の具体的アクション**
+
+1. **Claude Desktop問題の解決**: MCP Inspector での動作確認
+1. **Issue #7完了**: AWS公式準拠のプロジェクト構造への移行
+1. **環境変数設定**: AWS_PROFILE, AWS_REGION対応
+1. **ヘルスチェックツール**: AWS接続確認機能
+
+### 💡 **重要な実装方針**
+
+- **AWS公式完全準拠**: すべてのパターンをAWS公式MCPサーバに合わせる
+- **セキュリティファースト**: 読み取り専用デフォルト
+- **段階的実装**: 各フェーズで動作確認を行う
+- **MVPアプローチ**: 動作するものから順次実装
+
+---
+
+**ドキュメントバージョン**: 1.1  
+**最終更新**: 2025年6月16日  
 **作成者**: Development Team
